@@ -21,32 +21,54 @@ def consumer_thread_proc():
     """Consumer thread procedure."""
     rnd = random.Random()
     rnd.seed()
-    for i in range(5):
 
-        # simulate other work
-        time.sleep(rnd.random())
+    # simulate other work
+    time.sleep(rnd.random())
 
-        # signal producer to start
-        my_print('  consumer: signaling producer start')
-        producer_must_start.set()
+    # signal producer to start first time
+    my_print('  consumer: signaling producer start')
+    producer_must_start.set()
 
-        # simulate other work
-        time.sleep(rnd.random())
+    for i in range(4):
 
         # wait for producer to signal ready.
         my_print('    consumer: waiting')
         producer_is_ready.wait()
         producer_is_ready.clear()
-        my_print('    consumer: wait done\nconsumer: start consuming')
+        my_print('    consumer: wait done\nconsumer: start retrieving')
 
-        # simulate time consuming
+        # simulate time retrieving
         time.sleep(rnd.random())
-        my_print('consumer: consumption complete')
+        my_print('consumer: retrieval complete')
+
+        # signal producer to re-start
+        my_print('  consumer: signaling producer start')
+        producer_must_start.set()
+
+        # simulate time processing
+        time.sleep(rnd.random())
+
+    # wait for producer to signal ready last time
+    my_print('    consumer: waiting')
+    producer_is_ready.wait()
+    producer_is_ready.clear()
+    my_print('    consumer: wait done\nconsumer: start retrieving')
+
+    # simulate time retrieving
+    time.sleep(rnd.random())
+    my_print('consumer: retrieval complete')
+
+    # simulate time processing
+    time.sleep(rnd.random())
 
 def producer_thread_proc():
     """Producer thread procedure."""
     rnd = random.Random()
     rnd.seed()
+
+    # simulate other work
+    time.sleep(rnd.random())
+
     for i in range(5):
 
         # simulate other work
