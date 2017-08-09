@@ -4,8 +4,8 @@ import threading
 import random
 import time
 
-producer_is_ready = threading.Semaphore(value = 0)
-producer_must_start = threading.Semaphore(value = 0)
+producer_is_ready = threading.Event()
+producer_must_start = threading.Event()
 
 print_lock = threading.Lock()
 
@@ -28,14 +28,15 @@ def consumer_thread_proc():
 
         # signal producer to start
         my_print('  consumer: signaling producer start')
-        producer_must_start.release()
+        producer_must_start.set()
 
         # simulate other work
         time.sleep(rnd.random())
 
         # wait for producer to signal ready.
         my_print('    consumer: waiting')
-        producer_is_ready.acquire()
+        producer_is_ready.wait()
+        producer_is_ready.clear()
         my_print('    consumer: wait done\nconsumer: start consuming')
 
         # simulate time consuming
@@ -53,13 +54,14 @@ def producer_thread_proc():
 
         # wait for consumer to signal start.
         my_print('  producer: waiting')
-        producer_must_start.acquire()
+        producer_must_start.wait()
+        producer_must_start.clear()
         my_print('  producer: wait done\nproducer: start producing')
 
         # simulate time producing
         time.sleep(rnd.random())
         my_print('producer: production complete\n    producer: signaling ready')
-        producer_is_ready.release()
+        producer_is_ready.set()
 
 def main():
     """Execute the multi-thread producer/consumer example.
