@@ -1,3 +1,5 @@
+"""multi-threading producer/consumer examples"""
+
 import threading
 import random
 import time
@@ -8,21 +10,30 @@ producer_must_start = threading.Semaphore(value = 0)
 print_lock = threading.Lock()
 
 def my_print(msg):
+    """Print using a lock.
+
+    Without the lock, newlines randomly disappear on Windows.
+    """
     with print_lock:
         print(msg)
 
 def consumer_thread_proc():
+    """Consumer thread procedure."""
     rnd = random.Random()
     rnd.seed()
     for i in range(5):
 
         # simulate other work
         time.sleep(rnd.random())
+
+        # signal producer to start
         my_print('  consumer: signaling producer start')
         producer_must_start.release()
 
         # simulate other work
         time.sleep(rnd.random())
+
+        # wait for producer to signal ready.
         my_print('    consumer: waiting')
         producer_is_ready.acquire()
         my_print('    consumer: wait done\nconsumer: start consuming')
@@ -32,12 +43,15 @@ def consumer_thread_proc():
         my_print('consumer: consumption complete')
 
 def producer_thread_proc():
+    """Producer thread procedure."""
     rnd = random.Random()
     rnd.seed()
     for i in range(5):
 
         # simulate other work
         time.sleep(rnd.random())
+
+        # wait for consumer to signal start.
         my_print('  producer: waiting')
         producer_must_start.acquire()
         my_print('  producer: wait done\nproducer: start producing')
@@ -48,6 +62,15 @@ def producer_thread_proc():
         producer_is_ready.release()
 
 def main():
+    """Execute the multi-thread producer/consumer example.
+
+    Create 2 threads, start them, then wait for both to complete.
+
+    From the output, even with the random delays,
+    producer producing and comsumer consuming are
+    interleaved, starting with producer producing.
+    Also, there is no overlap between producing and consuming.
+    """
     consumer_thread = threading.Thread(target = consumer_thread_proc, args = ())
     producer_thread = threading.Thread(target = producer_thread_proc, args = ())
 
