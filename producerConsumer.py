@@ -3,9 +3,10 @@
 import threading
 import random
 import time
+import queue
 
-producer_is_ready = threading.Event()
-producer_must_start = threading.Event()
+producer_is_ready = queue.Queue(maxsize = 1)
+producer_must_start = queue.Queue(maxsize = 1)
 
 print_lock = threading.Lock()
 
@@ -27,39 +28,39 @@ def consumer_thread_proc():
 
     # signal producer to start first time
     my_print('  consumer: signaling producer start')
-    producer_must_start.set()
+    producer_must_start.put(1)
 
     for i in range(4):
 
         # wait for producer to signal ready.
         my_print('    consumer: waiting')
-        producer_is_ready.wait()
-        producer_is_ready.clear()
-        my_print('    consumer: wait done\nconsumer: start retrieving')
-
-        # simulate time retrieving
-        time.sleep(rnd.random())
-        my_print('consumer: retrieval complete')
+        val = producer_is_ready.get()
+        producer_is_ready.task_done()
+        my_print('    consumer: wait done {0}'.format(val))
 
         # signal producer to re-start
         my_print('  consumer: signaling producer start')
-        producer_must_start.set()
+        producer_must_start.put(1)
 
         # simulate time processing
+        my_print('consumer: start processing')
         time.sleep(rnd.random())
+        my_print('consumer: processing complete')
 
     # wait for producer to signal ready last time
     my_print('    consumer: waiting')
-    producer_is_ready.wait()
-    producer_is_ready.clear()
-    my_print('    consumer: wait done\nconsumer: start retrieving')
+    val = producer_is_ready.get()
+    producer_is_ready.task_done()
+    my_print('    consumer: wait done {0}'.format(val))
 
-    # simulate time retrieving
-    time.sleep(rnd.random())
-    my_print('consumer: retrieval complete')
+    # signal producer to end
+    my_print('      consumer:  signaling producer end')
+    producer_must_start.put(None)
 
     # simulate time processing
+    my_print('consumer: start processing')
     time.sleep(rnd.random())
+    my_print('consumer: processing complete')
 
 def producer_thread_proc():
     """Producer thread procedure."""
@@ -69,21 +70,26 @@ def producer_thread_proc():
     # simulate other work
     time.sleep(rnd.random())
 
-    for i in range(5):
+    while True:
 
         # simulate other work
         time.sleep(rnd.random())
 
         # wait for consumer to signal start.
         my_print('  producer: waiting')
-        producer_must_start.wait()
-        producer_must_start.clear()
-        my_print('  producer: wait done\nproducer: start producing')
+        item = producer_must_start.get()
+        my_print('  producer: wait done')
+        if item is None:
+            my_print('      producer: ending')
+            break
+        producer_must_start.task_done()
 
         # simulate time producing
+        my_print('producer: start producing')
         time.sleep(rnd.random())
-        my_print('producer: production complete\n    producer: signaling ready')
-        producer_is_ready.set()
+        val = rnd.randrange(10)
+        my_print('producer: production complete {0}'.format(val))
+        producer_is_ready.put(val)
 
 def main():
     """Execute the multi-thread producer/consumer example.
@@ -91,9 +97,10 @@ def main():
     Create 2 threads, start them, then wait for both to complete.
 
     From the output, even with the random delays,
-    producer producing and comsumer consuming are
+    producer producing and comsumer processing are
     interleaved, starting with producer producing.
-    Also, there is no overlap between producing and consuming.
+    Also, with queues, there is may be overlap between
+    producing the next item and processing the current item.
     """
     consumer_thread = threading.Thread(target = consumer_thread_proc, args = ())
     producer_thread = threading.Thread(target = producer_thread_proc, args = ())
