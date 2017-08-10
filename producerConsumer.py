@@ -30,7 +30,7 @@ def consumer_thread_proc():
     my_print('  consumer: signaling producer start')
     producer_must_start.put(1)
 
-    for i in range(4):
+    for i in range(10):
 
         # wait for producer to signal ready.
         my_print('    consumer: waiting')
@@ -72,9 +72,6 @@ def producer_thread_proc():
 
     while True:
 
-        # simulate other work
-        time.sleep(rnd.random())
-
         # wait for consumer to signal start.
         my_print('  producer: waiting')
         item = producer_must_start.get()
@@ -99,7 +96,7 @@ def main():
     From the output, even with the random delays,
     producer producing and comsumer processing are
     interleaved, starting with producer producing.
-    Also, with queues, there is may be overlap between
+    Also, with queues, there is overlap between
     producing the next item and processing the current item.
     """
     consumer_thread = threading.Thread(target = consumer_thread_proc, args = ())
