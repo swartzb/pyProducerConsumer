@@ -5,7 +5,10 @@ import random
 import time
 import queue
 
+# put by producer, got by consumer
 producer_is_ready = queue.Queue(maxsize = 1)
+
+# put by consumer, got by producer
 producer_must_start = queue.Queue(maxsize = 1)
 
 print_lock = threading.Lock()
@@ -42,10 +45,14 @@ def consumer_thread_proc():
         my_print('  consumer: signaling producer start')
         producer_must_start.put(1)
 
+        # Here is the usefulness of multi-tasking.
+        # The producer starts producing the next item (above),
+        # while the consumer is processing the current item (below).
+
         # simulate time processing
-        my_print('consumer: start processing')
+        my_print('consumer: start processing {0}'.format(val))
         time.sleep(rnd.random())
-        my_print('consumer: processing complete')
+        my_print('consumer: processing complete {0}'.format(val))
 
     # wait for producer to signal ready last time
     my_print('    consumer: waiting')
@@ -58,14 +65,15 @@ def consumer_thread_proc():
     producer_must_start.put(None)
 
     # simulate time processing
-    my_print('consumer: start processing')
+    my_print('consumer: start processing {0}'.format(val))
     time.sleep(rnd.random())
-    my_print('consumer: processing complete')
+    my_print('consumer: processing complete {0}'.format(val))
 
 def producer_thread_proc():
     """Producer thread procedure."""
     rnd = random.Random()
     rnd.seed()
+    val = 0
 
     # simulate other work
     time.sleep(rnd.random())
@@ -82,11 +90,11 @@ def producer_thread_proc():
         producer_must_start.task_done()
 
         # simulate time producing
-        my_print('producer: start producing')
+        my_print('producer: start producing {0}'.format(val))
         time.sleep(rnd.random())
-        val = rnd.randrange(10)
         my_print('producer: production complete {0}'.format(val))
         producer_is_ready.put(val)
+        val += 1
 
 def main():
     """Execute the multi-thread producer/consumer example.
